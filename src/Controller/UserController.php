@@ -16,7 +16,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 class UserController extends AbstractController
 {
     #[Route('/users', name: 'liste_des_users', methods:['GET'])]
-    public function getListeDesUsers(EntityManagerInterface $entityManager): JsonResponse
+    public function getUsersList(EntityManagerInterface $entityManager): JsonResponse
     {
         $data = $entityManager->getRepository(User::class)->findAll();
         return $this->json(
@@ -77,7 +77,7 @@ class UserController extends AbstractController
     }
 
     #[Route('/user/{identifiant}', name: 'get_user_by_id', methods:['GET'])]
-    public function getUserWithIdentifiant($identifiant, EntityManagerInterface $entityManager): JsonResponse
+    public function getUserWithID($identifiant, EntityManagerInterface $entityManager): JsonResponse
     {
         if(ctype_digit($identifiant)){
             $joueur = $entityManager->getRepository(User::class)->findBy(['id'=>$identifiant]);
@@ -148,7 +148,7 @@ class UserController extends AbstractController
     }
 
     #[Route('/user/{id}', name: 'delete_user_by_identifiant', methods:['DELETE'])]
-    public function suprUser($id, EntityManagerInterface $entityManager): JsonResponse | null
+    public function deleteUser($id, EntityManagerInterface $entityManager): JsonResponse | null
     {
         $joueur = $entityManager->getRepository(User::class)->findBy(['id'=>$id]);
         if(count($joueur) == 1){
