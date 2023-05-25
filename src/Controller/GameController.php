@@ -15,7 +15,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 class GameController extends AbstractController
 {
     #[Route('/games', name: 'get_list_of_games', methods:['GET'])]
-    public function getPartieList(EntityManagerInterface $entityManager): JsonResponse
+    public function getPartiesList(EntityManagerInterface $entityManager): JsonResponse
     {
         $data = $entityManager->getRepository(Game::class)->findAll();
         return $this->json(
@@ -254,18 +254,6 @@ class GameController extends AbstractController
                 $game->setPlayRight($data['choice']);
 
                 $entityManager->flush();
-
-
-
-
-
-
-
-
-
-
-
-
 
                 if($game->getPlayLeft() !== null){
 
