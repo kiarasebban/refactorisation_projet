@@ -82,18 +82,21 @@ class UserController extends AbstractController
     }
 
 
-    #[Route('/user/{identifiant}', name: 'get_user_by_id', methods:['GET'])]
-    public function getUserWithID($identifiant, EntityManagerInterface $entityManager): JsonResponse
+    #[Route('/user/{identifiant}', name: 'get_user_by_id', methods: ['GET'])]
+    public function getUserById(EntityManagerInterface $entityManager, $identifiant): JsonResponse
     {
-        if(ctype_digit($identifiant)){
-            $joueur = $entityManager->getRepository(User::class)->findBy(['id'=>$identifiant]);
-            if(count($joueur) == 1){
-                return new JsonResponse(array('name'=>$joueur[0]->getName(), "age"=>$joueur[0]->getAge(), 'id'=>$joueur[0]->getId()), 200);
-            }else{
-                return new JsonResponse('Wrong id', 404);
-            }
+        $user = $entityManager->getRepository(User::class)->find($identifiant);
+        if (!$user) {
+            return new JsonResponse('User not found', 404);
         }
-        return new JsonResponse('Wrong id', 404);
+
+        $data = [
+            'id' => $user->getId(),
+            'name' => $user->getName(),
+            'age' => $user->getAge()
+        ];
+
+        return new JsonResponse($data, 200);
     }
 
     #[Route('/user/{identifiant}', name: 'udpate_user', methods:['PATCH'])]
