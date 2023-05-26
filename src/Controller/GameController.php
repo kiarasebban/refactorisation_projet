@@ -42,16 +42,16 @@ class GameController extends AbstractController
                 return new JsonResponse('User not found', 401);
             }
 
-            $nouvelle_partie = new Game();
-            $nouvelle_partie->setState('pending');
-            $nouvelle_partie->setPlayerLeft($currentUser);
+            $new_game = new Game();
+            $new_game->setState('pending');
+            $new_game->setPlayerLeft($currentUser);
 
-            $entityManager->persist($nouvelle_partie);
+            $entityManager->persist($new_game);
 
             $entityManager->flush();
 
             return $this->json(
-                $nouvelle_partie,
+                $new_game,
                 201,
                 headers: ['Content-Type' => 'application/json;charset=UTF-8']
             );
@@ -100,9 +100,7 @@ class GameController extends AbstractController
 
             if($game === null){
                 return new JsonResponse('Game not found', 404);
-            }
-
-            if($game->getState() === 'ongoing' || $game->getState() === 'finished'){
+            }elseif($game->getState() === 'ongoing' || $game->getState() === 'finished'){
                 return new JsonResponse('Game already started', 409);
             }
 
