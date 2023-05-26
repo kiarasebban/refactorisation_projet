@@ -14,14 +14,19 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 class UserController extends AbstractController
 {
-    #[Route('/users', name: 'liste_des_users', methods:['GET'])]
+    #[Route('/users', name: 'get_users_list', methods: ['GET'])]
     public function getUsersList(EntityManagerInterface $entityManager): JsonResponse
     {
-        $data = $entityManager->getRepository(User::class)->findAll();
-        return $this->json(
-            $data,
-            headers: ['Content-Type' => 'application/json;charset=UTF-8']
-        );
+        $users = $entityManager->getRepository(User::class)->findAll();
+        $data = [];
+        foreach ($users as $user) {
+            $data[] = [
+                'id' => $user->getId(),
+                'name' => $user->getName(),
+                'age' => $user->getAge()
+            ];
+        }
+        return new JsonResponse($data, 200);
     }
 
     #[Route('/users', name: 'user_post', methods: ['POST'])]
