@@ -123,41 +123,34 @@ class GameController extends AbstractController
     {
         $currentUserId = $request->headers->get('X-User-Id');
 
-        if(ctype_digit($currentUserId) === false){
+        if (ctype_digit($currentUserId) === false) {
             return new JsonResponse('User not found', 401);
         }
 
         $currentUser = $entityManager->getRepository(User::class)->find($currentUserId);
 
-        if($currentUser === null){
+        if ($currentUser === null) {
             return new JsonResponse('User not found', 401);
         }
 
-        if(ctype_digit($identifiant) === false){
+        if (ctype_digit($identifiant) === false) {
             return new JsonResponse('Game not found', 404);
         }
 
         $game = $entityManager->getRepository(Game::class)->find($identifiant);
 
-        if($game === null){
+        if ($game === null) {
             return new JsonResponse('Game not found', 404);
         }
 
-        $userIsPlayerLeft = false;
-        $userIsPlayerRight = $userIsPlayerLeft;
+        $userIsPlayerLeft = $game->getPlayerLeft() === $currentUser;
+        $userIsPlayerRight = $game->getPlayerRight() === $currentUser;
 
-        if($game->getPlayerLeft()->getId() === $currentUser->getId()){
-            $userIsPlayerLeft = true;
-        }elseif($game->getPlayerRight()->getId() === $currentUser->getId()){
-            $userIsPlayerRight = true;
-        }
-
-        if(false === $userIsPlayerLeft && !$userIsPlayerRight){
+        if (!$userIsPlayerLeft && !$userIsPlayerRight) {
             return new JsonResponse('You are not a player of this game', 403);
         }
 
-        // we must check the game is ongoing and the user is a player of this game
-        if($game->getState() === 'finished' || $game->getState() === 'pending'){
+        if ($game->getState() === 'finished' || $game->getState() === 'pending') {
             return new JsonResponse('Game not started', 409);
         }
 
@@ -173,124 +166,56 @@ class GameController extends AbstractController
 
         $form->submit($choice);
 
-        if($form->isValid()){
-
+        if ($form->isValid()) {
             $data = $form->getData();
 
-            // on joue avec les règles de base de pierre feuille ciseaux
-            if($data['choice'] !== 'rock' && $data['choice'] !== 'paper' && $data['choice'] !== 'scissors'){
+            $validChoices = ['rock', 'paper', 'scissors'];
+            if (!in_array($data['choice'], $validChoices)) {
                 return new JsonResponse('Invalid choice', 400);
             }
 
-            if($userIsPlayerLeft){
+            if ($userIsPlayerLeft) {
                 $game->setPlayLeft($data['choice']);
-                $entityManager->flush();
-
-                if($game->getPlayRight() !== null){
-
-                    switch($data['choice']){
-                        case 'rock':
-                            if($game->getPlayRight() === 'paper'){
-                                $game->setResult('winRight');
-                            }elseif($game->getPlayRight() === 'scissors'){
-                                $game->setResult('winLeft');
-                            }else{
-                                $game->setResult('draw');
-                            }
-                            break;
-                        case 'paper':
-                            if($game->getPlayRight() === 'scissors'){
-                                $game->setResult('winRight');
-                            }elseif($game->getPlayRight() === 'rock'){
-                                $game->setResult('winLeft');
-                            }else{
-                                $game->setResult('draw');
-                            }
-                            break;
-                        case 'scissors':
-                            if($game->getPlayRight() === 'rock'){
-                                $game->setResult('winRight');
-                            }elseif($game->getPlayRight() === 'paper'){
-                                $game->setResult('winLeft');
-                            }else{
-                                $game->setResult('draw');
-                            }
-                            break;
-                    }
-
-                    $game->setState('finished');
-                    $entityManager->flush();
-
-                    return $this->json(
-                        $game,
-                        headers: ['Content-Type' => 'application/json;charset=UTF-8']
-                    );
-                }
-
-                return $this->json(
-                    $game,
-                    headers: ['Content-Type' => 'application/json;charset=UTF-8']
-                );
-
-            }elseif($userIsPlayerRight){
+            } elseif ($userIsPlayerRight) {
                 $game->setPlayRight($data['choice']);
-
-                $entityManager->flush();
-
-                if($game->getPlayLeft() !== null){
-
-                    switch($data['choice']){
-                        case 'rock':
-                            if($game->getPlayLeft() === 'paper'){
-                                $game->setResult('winLeft');
-                            }elseif($game->getPlayLeft() === 'scissors'){
-                                $game->setResult('winRight');
-                            }else{
-                                $game->setResult('draw');
-                            }
-                            break;
-                        case 'paper':
-                            if($game->getPlayLeft() === 'scissors'){
-                                $game->setResult('winLeft');
-                            }elseif($game->getPlayLeft() === 'rock'){
-                                $game->setResult('winRight');
-                            }else{
-                                $game->setResult('draw');
-                            }
-                            break;
-                        case 'scissors':
-                            if($game->getPlayLeft() === 'rock'){
-                                $game->setResult('winLeft');
-                            }elseif($game->getPlayLeft() === 'paper'){
-                                $game->setResult('winRight');
-                            }else{
-                                $game->setResult('draw');
-                            }
-                            break;
-                    }
-
-                    $game->setState('finished');
-                    $entityManager->flush();
-
-                    return $this->json(
-                        $game,
-                        headers: ['Content-Type' => 'application/json;charset=UTF-8']
-                    );
-
-                }
-                return $this->json(
-                    $game,
-                    headers: ['Content-Type' => 'application/json;charset=UTF-8']
-                );
-
             }
 
-        }else{
-            return new JsonResponse('Invalid choice', 400);
+            $entityManager->flush();
+
+            if ($game->getPlayLeft() !== null && $game->getPlayRight() !== null) {
+                $result = $this->calculateResult($game->getPlayLeft(), $game->getPlayRight());
+                $game->setResult($result);
+                $game->setState('finished');
+                $entityManager->flush();
+            }
+
+            return $this->json(
+                $game,
+                headers: ['Content-Type' => 'application/json;charset=UTF-8']
+            );
         }
 
-        return new JsonResponse('coucou');
+        return new JsonResponse('Invalid choice', 400);
     }
+
+    private function calculateResult($choice1, $choice2)
+    {
+        if ($choice1 === $choice2) {
+            return 'draw';
+        }
+
+        switch ($choice1) {
+            case 'rock':
+                return ($choice2 === 'paper') ? 'winRight' : 'winLeft';
+            case 'paper':
+                return ($choice2 === 'scissors') ? 'winRight' : 'winLeft';
+            case 'scissors':
+                return ($choice2 === 'rock') ? 'winRight' : 'winLeft';
+        }
+
+        return 'draw';
+    }
+
 
     #[Route('/game/{id}', name: 'delete_game', methods:['DELETE'])]
     public function deleteGame(EntityManagerInterface $entityManager, Request $request, $id): JsonResponse
