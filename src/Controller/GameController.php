@@ -15,14 +15,14 @@ use Symfony\Component\Validator\Constraints as Assert;
 class GameController extends AbstractController
 {
     #[Route('/games', name: 'get_list_of_games', methods: ['GET'])]
-    public function getPartiesList(EntityManagerInterface $entityManager): JsonResponse
+    public function getGamesList(EntityManagerInterface $entityManager): JsonResponse
     {
         $games = $entityManager->getRepository(Game::class)->findAll();
 
         return $this->json($games);
     }
 
-    #[Route('/games', name: 'create_game', methods: ['POST'])]
+    #[Route('/games', name: 'launch_game', methods: ['POST'])]
     public function launchGame(Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
         $currentUserId = $request->headers->get('X-User-Id');
@@ -47,56 +47,52 @@ class GameController extends AbstractController
         }
     }
 
-    #[Route('/game/{identifiant}', name: 'fetch_game', methods:['GET'])]
+    #[Route('/game/{identifiant}', name: 'get_game_info', methods: ['GET'])]
     public function getGameInfo(EntityManagerInterface $entityManager, $identifiant): JsonResponse
     {
-        if(ctype_digit($identifiant)){
-            $party = $entityManager->getRepository(Game::class)->findOneBy(['id' => $identifiant]);
+        if (ctype_digit($identifiant)) {
+            $game = $entityManager->getRepository(Game::class)->findOneBy(['id' => $identifiant]);
 
-            if($party !== null){
-                return $this->json(
-                    $party,
-                    headers: ['Content-Type' => 'application/json;charset=UTF-8']
-                );
-            }else{
+            if ($game !== null) {
+                return $this->json($game);
+            } else {
                 return new JsonResponse('Game not found', 404);
             }
-        }else{
+        } else {
             return new JsonResponse('Game not found', 404);
         }
     }
 
-    #[Route('/game/{id}/add/{playerRightId}', name: 'add_user_right', methods:['PATCH'])]
+    #[Route('/game/{id}/add/{playerRightId}', name: 'invite_to_game', methods:['PATCH'])]
     public function inviteToGame(Request $request, EntityManagerInterface $entityManager, $id, $playerRightId): JsonResponse
     {
         $currentUserId = $request->headers->get('X-User-Id');
 
-        if(empty($currentUserId)){
+        if (empty($currentUserId)) {
             return new JsonResponse('User not found', 401);
         }
 
-        if(ctype_digit($id) && ctype_digit($playerRightId) && ctype_digit($currentUserId)){
-  
+        if (ctype_digit($id) && ctype_digit($playerRightId) && ctype_digit($currentUserId)) {
+
             $playerLeft = $entityManager->getRepository(User::class)->find($currentUserId);
 
-            if($playerLeft === null){
+            if ($playerLeft === null) {
                 return new JsonResponse('User not found', 401);
             }
 
             $game = $entityManager->getRepository(Game::class)->find($id);
 
-            if($game === null){
+            if ($game === null) {
                 return new JsonResponse('Game not found', 404);
-            }elseif($game->getState() === 'ongoing' || $game->getState() === 'finished'){
+            } elseif ($game->getState() === 'ongoing' || $game->getState() === 'finished') {
                 return new JsonResponse('Game already started', 409);
             }
 
-
             $playerRight = $entityManager->getRepository(User::class)->find($playerRightId);
 
-            if($playerRight !== null){
+            if ($playerRight !== null) {
 
-                if($playerLeft->getId() === $playerRight->getId()){
+                if ($playerLeft->getId() === $playerRight->getId()) {
                     return new JsonResponse('You can\'t play against yourself', 409);
                 }
 
@@ -109,17 +105,18 @@ class GameController extends AbstractController
                     $game,
                     headers: ['Content-Type' => 'application/json;charset=UTF-8']
                 );
-            }else{
+            } else {
                 return new JsonResponse('User not found', 404);
             }
-        }else{
-            if(ctype_digit($currentUserId) === false){
+        } else {
+            if (ctype_digit($currentUserId) === false) {
                 return new JsonResponse('User not found', 401);
             }
 
             return new JsonResponse('Game not found', 404);
         }
     }
+
 
     #[Route('/game/{identifiant}', name: 'send_choice', methods:['PATCH'])]
     public function play(Request $request, EntityManagerInterface $entityManager, $identifiant): JsonResponse
