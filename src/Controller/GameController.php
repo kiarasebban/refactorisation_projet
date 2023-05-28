@@ -63,8 +63,8 @@ class GameController extends AbstractController
         }
     }
 
-    #[Route('/game/{id}/add/{playerRightId}', name: 'invite_to_game', methods:['PATCH'])]
-    public function inviteToGame(Request $request, EntityManagerInterface $entityManager, $id, $playerRightId): JsonResponse
+    #[Route('/game/{id}/add/{playerRightId}', name: 'invite_to_play', methods:['PATCH'])]
+    public function inviteToPlay(Request $request, EntityManagerInterface $entityManager, $id, $playerRightId): JsonResponse
     {
         $currentUserId = $request->headers->get('X-User-Id');
 
