@@ -14,48 +14,35 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Validator\Constraints as Assert;
 class GameController extends AbstractController
 {
-    #[Route('/games', name: 'get_list_of_games', methods:['GET'])]
+    #[Route('/games', name: 'get_list_of_games', methods: ['GET'])]
     public function getPartiesList(EntityManagerInterface $entityManager): JsonResponse
     {
-        $data = $entityManager->getRepository(Game::class)->findAll();
-        return $this->json(
-            $data,
-            headers: ['Content-Type' => 'application/json;charset=UTF-8']
-        );
+        $games = $entityManager->getRepository(Game::class)->findAll();
+
+        return $this->json($games);
     }
 
-    #[Route('/games', name: 'create_game', methods:['POST'])]
+    #[Route('/games', name: 'create_game', methods: ['POST'])]
     public function launchGame(Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
         $currentUserId = $request->headers->get('X-User-Id');
 
-        if($currentUserId !== null){
-
-            if(ctype_digit($currentUserId) === false){
-                return new JsonResponse('User not found', 401);
-            }
-
+        if ($currentUserId !== null && ctype_digit($currentUserId)) {
             $currentUser = $entityManager->getRepository(User::class)->find($currentUserId);
 
-            // Si l'utilisateur n'existe pas -> stop creation de partie
-            if($currentUser === null){
+            if ($currentUser === null) {
                 return new JsonResponse('User not found', 401);
             }
 
-            $new_game = new Game();
-            $new_game->setState('pending');
-            $new_game->setPlayerLeft($currentUser);
+            $newGame = new Game();
+            $newGame->setState('pending');
+            $newGame->setPlayerLeft($currentUser);
 
-            $entityManager->persist($new_game);
-
+            $entityManager->persist($newGame);
             $entityManager->flush();
 
-            return $this->json(
-                $new_game,
-                201,
-                headers: ['Content-Type' => 'application/json;charset=UTF-8']
-            );
-        }else{
+            return $this->json($newGame, 201);
+        } else {
             return new JsonResponse('User not found', 401);
         }
     }

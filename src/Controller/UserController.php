@@ -73,7 +73,6 @@ class UserController extends AbstractController
         return new JsonResponse($data, 200);
     }
 
-    
     #[Route('/user/{identifiant}', name: 'update_user', methods: ['PATCH'])]
     public function updateUser(EntityManagerInterface $entityManager, $identifiant, Request $request): JsonResponse
     {
